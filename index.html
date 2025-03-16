@@ -4,29 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dog Upload Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body {
             text-align: center;
             font-family: Arial, sans-serif;
+            overflow: hidden;
         }
         #upload-container {
             margin: 20px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
         }
-        #dog-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .dog-image {
-            width: 150px;
-            height: auto;
-            border-radius: 10px;
-            transition: transform 0.3s ease-in-out;
-        }
-        .dog-image:hover {
-            transform: scale(1.1);
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
@@ -35,19 +30,49 @@
     <div id="upload-container">
         <input type="file" id="upload" accept="image/*">
     </div>
-    <div id="dog-gallery"></div>
-    
     <script>
+        const { Engine, Render, Runner, Bodies, World } = Matter;
+
+        const engine = Engine.create();
+        const world = engine.world;
+
+        const render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                background: '#f0f0f0'
+            }
+        });
+        Render.run(render);
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // Ground
+        const ground = Bodies.rectangle(window.innerWidth / 2, window.innerHeight - 10, window.innerWidth, 20, { isStatic: true });
+        World.add(world, ground);
+
         document.getElementById('upload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const img = document.createElement('img');
+                    const img = new Image();
                     img.src = e.target.result;
-                    img.classList.add('dog-image');
-                    document.getElementById('dog-gallery').appendChild(img);
-                }
+                    img.onload = function() {
+                        const scale = 100 / img.width;
+                        const width = img.width * scale;
+                        const height = img.height * scale;
+                        const texture = e.target.result;
+
+                        const dogBody = Bodies.rectangle(Math.random() * window.innerWidth, 0, width, height, {
+                            render: { sprite: { texture: texture, xScale: scale, yScale: scale } }
+                        });
+                        World.add(world, dogBody);
+                    };
+                };
                 reader.readAsDataURL(file);
             }
         });
